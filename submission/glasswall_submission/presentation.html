@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOLA/IDOR — Glasswall Halo | INFO5995 Part B</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg:'#0D1117', surface:'#161B22', border:'#30363D',
+        accent:'#238636', danger:'#DA3633', info:'#1F6FEB',
+        warn:'#E3B341', muted:'#8B949E', orange:'#F78166', bright:'#F0F6FC'
+      }
+    }
+  }
+}
+</script>
+<style>
+*{box-sizing:border-box;}
+body{background:#0D1117;color:#F0F6FC;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;overflow:hidden;font-size:20px;}
+.slide{display:none;width:100vw;height:100vh;flex-direction:column;position:relative;overflow:hidden;}
+.slide.active{display:flex;animation:fadeIn .35s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.slide-body{flex:1;overflow-y:auto;padding:0 48px 12px;}
+.slide-body::-webkit-scrollbar{width:4px;}
+.slide-body::-webkit-scrollbar-thumb{background:#30363D;border-radius:4px;}
+.terminal{background:#010409;border:1px solid #30363D;border-radius:10px;font-family:'Courier New',monospace;overflow:hidden;}
+.terminal-bar{background:#161B22;padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #30363D;}
+.dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.terminal-body{padding:16px 20px;font-size:.85rem;line-height:1.8;}
+.badge{display:inline-block;padding:3px 12px;border-radius:6px;font-size:.82rem;font-weight:700;border:1px solid;letter-spacing:.04em;}
+.card{background:#161B22;border-radius:12px;border:1px solid #30363D;padding:18px;}
+.card-red{border-color:#DA3633;}
+.card-green{border-color:#238636;}
+.card-blue{border-color:#1F6FEB;}
+.card-yellow{border-color:#E3B341;}
+.nav-btn{background:#161B22;border:1px solid #30363D;color:#F0F6FC;padding:8px 22px;border-radius:8px;cursor:pointer;font-size:.9rem;transition:all .2s;}
+.nav-btn:hover{background:#238636;border-color:#238636;}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed;}
+#progress-bar{transition:width .35s ease;}
+.ev-thumb{cursor:pointer;border:1px solid #30363D;border-radius:8px;overflow:hidden;transition:all .2s;opacity:.9;}
+.ev-thumb:hover{border-color:#238636;opacity:1;transform:scale(1.01);}
+.ev-label{font-size:.75rem;color:#8B949E;text-align:center;padding:3px 0;background:#161B22;}
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+#lightbox.open{display:flex;}
+#lightbox img{max-width:92vw;max-height:88vh;border-radius:10px;border:1px solid #30363D;}
+#lb-close{background:#161B22;border:1px solid #30363D;color:#F0F6FC;padding:6px 20px;border-radius:8px;cursor:pointer;font-size:.85rem;}
+#lb-close:hover{background:#DA3633;border-color:#DA3633;}
+.member-pill{display:flex;align-items:center;gap:7px;padding:8px 18px;border-radius:9999px;font-size:.82rem;font-weight:700;background:#161B22;border:1.5px solid #30363D;color:#F0F6FC;flex-direction:column;min-width:90px;text-align:center;position:relative;transition:transform .2s,box-shadow .2s;}
+.member-pill:hover{transform:translateY(-2px);}
+.pill-name{display:flex;align-items:center;gap:6px;justify-content:center;}
+.pill-slides{font-size:.72rem;font-weight:500;color:#8B949E;letter-spacing:.03em;margin-top:1px;}
+.halo-green{border-color:#238636;box-shadow:0 0 0 3px rgba(35,134,54,.2),0 0 16px rgba(35,134,54,.25);}
+.halo-blue{border-color:#1F6FEB;box-shadow:0 0 0 3px rgba(31,111,235,.2),0 0 16px rgba(31,111,235,.25);}
+.halo-yellow{border-color:#E3B341;box-shadow:0 0 0 3px rgba(227,179,65,.2),0 0 16px rgba(227,179,65,.25);}
+.halo-red{border-color:#DA3633;box-shadow:0 0 0 3px rgba(218,54,51,.25),0 0 18px rgba(218,54,51,.35);position:relative;}
+.halo-orange{border-color:#F78166;box-shadow:0 0 0 3px rgba(247,129,102,.2),0 0 16px rgba(247,129,102,.25);}
+.halo-grey{border-color:#8B949E;box-shadow:0 0 0 3px rgba(139,148,158,.15),0 0 14px rgba(139,148,158,.2);}
+.halo-red::after{content:'';position:absolute;inset:-4px;border-radius:9999px;background:transparent;border:2px solid rgba(218,54,51,.5);pointer-events:none;animation:haloPulse 2.2s ease-in-out infinite;}
+@keyframes haloPulse{0%,100%{opacity:.6;transform:scale(1);}50%{opacity:0;transform:scale(1.18);}}
+.member-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.dot-green{background:#238636;}.dot-blue{background:#1F6FEB;}.dot-yellow{background:#E3B341;}
+.dot-red{background:#DA3633;}.dot-orange{background:#F78166;}.dot-grey{background:#8B949E;}
+.slide-header{padding:28px 48px 4px;}
+.slide-header p{font-size:.75rem;color:#8B949E;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;}
+.slide-header h2{font-size:1.7rem;font-weight:700;line-height:1.25;}
+.divider{height:1px;background:#30363D;margin:8px 0 0;}
+/* Presenter corner placeholder */
+#presenter-box{position:fixed;top:0;right:0;z-index:150;width:160px;height:90px;border-left:2px solid #30363D;border-bottom:2px solid #30363D;border-bottom-left-radius:10px;}
+</style>
+</head>
+<body>
+
+<div class="fixed top-0 left-0 w-full h-1 z-50" style="background:#161B22">
+  <div id="progress-bar" class="h-full bg-accent" style="width:10%"></div>
+</div>
+
+<div id="lightbox" onclick="closeLb()">
+  <img id="lb-img" src="" alt="Evidence">
+  <button id="lb-close" onclick="closeLb()">✕ Close</button>
+</div>
+
+<!-- Presenter placeholder -->
+<div id="presenter-box"></div>
+
+<!-- ═══ SLIDE 1 — TITLE ═══════════════════════════════════════ -->
+<div class="slide active" id="slide-1">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(35,134,54,.08),transparent)"></div>
+  <div class="absolute left-0 top-0 h-full w-1.5 bg-accent rounded-r"></div>
+  <div class="absolute right-0 top-0 h-full w-1.5 bg-accent rounded-l"></div>
+  <div class="flex flex-col items-center justify-center flex-1 px-16 text-center gap-4">
+    <p class="text-muted text-xs tracking-widest uppercase">INFO5995 · AI-Assisted Network Security Analysis &amp; Bug Bounty Exploration</p>
+    <p class="text-muted text-xs">Assignment 2 &nbsp;|&nbsp; Part B — In-the-Wild Bug Bounty Finding</p>
+    <div class="w-20 h-px bg-border"></div>
+    <h1 class="text-5xl font-black text-bright leading-tight">BOLA / IDOR Vulnerability</h1>
+    <h2 class="text-3xl font-bold text-accent">Glasswall Halo CDR Platform</h2>
+    <p class="text-muted text-base max-w-xl">Standard User Can Disable Org-Wide File Security Controls</p>
+    <div class="flex flex-wrap gap-3 justify-center mt-1">
+      <span class="badge" style="color:#238636;border-color:#238636">Intigriti Bug Bounty</span>
+      <span class="badge" style="color:#DA3633;border-color:#DA3633">CVSS 9.9 CRITICAL</span>
+      <span class="badge" style="color:#E3B341;border-color:#E3B341">Zero-Day Candidate</span>
+      <span class="badge" style="color:#1F6FEB;border-color:#1F6FEB">OWASP API Top 10 #1</span>
+      <span class="badge" style="color:#DA3633;border-color:#DA3633;background:rgba(218,54,51,.08)">⚠ Unpatched — 14 May 2026</span>
+    </div>
+    <div class="w-20 h-px bg-border"></div>
+    <div class="grid grid-cols-3 gap-10 text-xs">
+      <div><p class="text-muted mb-1">Target</p><p class="text-accent font-mono" style="font-size:.82rem">staging.cdr.glasswall.dev</p></div>
+      <div><p class="text-muted mb-1">Platform</p><p class="text-info font-semibold">Intigriti</p></div>
+      <div><p class="text-muted mb-1">Severity</p><p class="text-danger font-black">CRITICAL (S4)</p></div>
+    </div>
+    <div class="mt-3 w-full">
+      <p class="text-muted text-xs uppercase tracking-widest text-center mb-3">Team Members</p>
+      <div class="flex justify-center gap-4 flex-wrap">
+        <div class="member-pill halo-green"><div class="pill-name"><span class="member-dot dot-green"></span>Chris</div><div class="pill-slides">Slides 1 – 2</div></div>
+        <div class="member-pill halo-blue"><div class="pill-name"><span class="member-dot dot-blue"></span>Digambar</div><div class="pill-slides">Slide 3</div></div>
+        <div class="member-pill halo-yellow"><div class="pill-name"><span class="member-dot dot-yellow"></span>Yuktha</div><div class="pill-slides">Slides 4 – 5</div></div>
+        <div class="member-pill halo-red"><div class="pill-name"><span class="member-dot dot-red"></span>Dhiren</div><div class="pill-slides">Slides 6 – 7</div></div>
+        <div class="member-pill halo-orange"><div class="pill-name"><span class="member-dot dot-orange"></span>Faye</div><div class="pill-slides">Slide 8</div></div>
+        <div class="member-pill halo-grey"><div class="pill-name"><span class="member-dot dot-grey"></span>Subhamay</div><div class="pill-slides">Slides 9 – 10</div></div>
+      </div>
+    </div>
+    <p class="text-muted text-xs mt-2">University of Sydney &nbsp;·&nbsp; INFO5995 &nbsp;·&nbsp; ≤ 5 minutes</p>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 2 — TARGET & SCOPE ════════════════════════════ -->
+<div class="slide" id="slide-2">
+  <div class="slide-header">
+    <p>Slide 2 / 10</p>
+    <h2>Target &amp; Scope <span class="text-accent">— The Last Line of Defence</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-4">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="flex flex-col gap-3">
+        <div class="card card-blue">
+          <p class="text-info font-bold text-sm mb-2">What is Glasswall Halo?</p>
+          <p class="text-muted text-sm">CDR platform — strips malware from every file before it reaches users.</p>
+          <p class="text-muted text-sm mt-1">Used by governments, defence agencies &amp; financial institutions worldwide.</p>
+        </div>
+        <div class="card">
+          <p class="text-muted text-xs font-bold uppercase tracking-widest mb-2">Scope — Intigriti Bug Bounty</p>
+          <div class="flex flex-col gap-1.5 text-sm">
+            <div class="flex gap-2"><span class="text-accent">✓</span> Program: Glasswall Solutions on Intigriti</div>
+            <div class="flex gap-2"><span class="text-accent">✓</span> Asset: <code class="text-orange text-xs">staging.cdr.glasswall.dev</code></div>
+            <div class="flex gap-2"><span class="text-accent">✓</span> Tier: Tier 2 — In scope</div>
+            <div class="flex gap-2"><span class="text-accent">✓</span> Testing: Legal, ethical, within defined boundaries</div>
+          </div>
+        </div>
+        <div class="card card-yellow py-3 text-center">
+          <p class="text-warn text-sm font-semibold italic">"We found a way to turn the security scanner off<br>from the inside — using nothing but a standard user account."</p>
+        </div>
+      </div>
+      <div class="flex flex-col gap-3">
+        <div class="card text-center py-3">
+          <p class="text-muted text-xs uppercase tracking-widest mb-3">How CDR Works</p>
+          <div class="flex items-center justify-center gap-2 text-sm flex-wrap">
+            <div class="card py-2 px-3" style="border-color:#DA3633"><p class="text-danger text-xs font-bold">MALICIOUS FILE</p><p class="text-muted text-xs">.pdf / .docx / .xlsx</p></div>
+            <span class="text-warn text-lg">→</span>
+            <div class="card py-2 px-3 card-green"><p class="text-accent text-xs font-bold">GLASSWALL HALO CDR</p><p class="text-muted text-xs">Strip · Sanitise · Rebuild</p></div>
+            <span class="text-accent text-lg">→</span>
+            <div class="card py-2 px-3 card-blue"><p class="text-info text-xs font-bold">CLEAN FILE ✓</p><p class="text-muted text-xs">Safe to open</p></div>
+          </div>
+          <p class="text-muted text-xs mt-3">Airport-style security scanner for every document</p>
+        </div>
+        <div class="card card-yellow">
+          <p class="text-warn text-xs font-bold uppercase tracking-widest mb-2">Stack Fingerprint</p>
+          <div class="grid grid-cols-2 gap-1 text-xs">
+            <div class="text-muted">API Base</div><div class="text-orange font-mono">staging.cdr.glasswall.dev</div>
+            <div class="text-muted">ICAP</div><div class="text-orange font-mono">staging.icap.glasswall.dev</div>
+            <div class="text-muted">Auth</div><div class="text-accent">Azure AD OAuth2 JWT</div>
+            <div class="text-muted">API format</div><div class="text-accent">REST / JSON</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 3 — VULNERABILITY ══════════════════════════════ -->
+<div class="slide" id="slide-3">
+  <div class="slide-header">
+    <p>Slide 3 / 10</p>
+    <h2>Vulnerability <span class="text-danger">— The Guard Who Checks No IDs</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-4">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="flex flex-col gap-3">
+        <div class="card card-yellow py-3">
+          <p class="text-warn font-bold text-sm mb-1">🔐 OWASP API Security #1</p>
+          <p class="text-bright text-base font-black">BOLA — Broken Object Level Authorization</p>
+          <p class="text-muted text-sm mt-1">Guard checks your badge at the door — you're in. But every room inside is left unlocked. No ownership check. No role boundary.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="card card-green">
+            <p class="text-accent text-xs font-bold uppercase tracking-widest mb-2">✓ Server DOES Check</p>
+            <div class="flex flex-col gap-1 text-sm">
+              <div class="flex gap-2"><span class="text-accent">✓</span> Valid bearer token</div>
+              <div class="flex gap-2"><span class="text-accent">✓</span> Token not expired</div>
+              <div class="flex gap-2"><span class="text-accent">✓</span> User exists in system</div>
+              <div class="flex gap-2"><span class="text-accent">✓</span> Hardcoded default → 403</div>
+            </div>
+          </div>
+          <div class="card card-red">
+            <p class="text-danger text-xs font-bold uppercase tracking-widest mb-2">✗ Server NEVER Checks</p>
+            <div class="flex flex-col gap-1 text-sm">
+              <div class="flex gap-2"><span class="text-danger">✗</span> Does user own this resource?</div>
+              <div class="flex gap-2"><span class="text-danger">✗</span> Did user create this resource?</div>
+              <div class="flex gap-2"><span class="text-danger">✗</span> Does role allow write/delete?</div>
+              <div class="flex gap-2"><span class="text-danger">✗</span> OID in JWT = resource owner?</div>
+            </div>
+          </div>
+        </div>
+        <div class="card py-2 text-center" style="border-color:#E3B341">
+          <p class="text-warn text-xs">Affected: &nbsp;<code class="text-orange text-xs">GET/PUT/DELETE /api/v1/policies/{name}</code>&nbsp; &amp; &nbsp;<code class="text-orange text-xs">GET/PUT/DELETE /api/v1/profiles/{name}</code></p>
+        </div>
+        <div class="flex gap-2 justify-center">
+          <span class="badge" style="color:#8B949E;border-color:#30363D;font-size:.75rem">CWE-639</span>
+          <span class="badge" style="color:#8B949E;border-color:#30363D;font-size:.75rem">CWE-284</span>
+          <span class="badge" style="color:#8B949E;border-color:#30363D;font-size:.75rem">OWASP API 2023 — A1</span>
+        </div>
+      </div>
+      <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/6_vuln_anatomy.png')">
+        <img src="../evidence/slide_assets/6_vuln_anatomy.png" style="width:100%;display:block;max-height:320px;object-fit:contain;background:#161B22">
+        <p class="ev-label">▶ Root cause diagram</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 4 — THE ATTACK ══════════════════════════════════ -->
+<div class="slide" id="slide-4">
+  <div class="slide-header">
+    <p>Slide 4 / 10</p>
+    <h2>The Attack <span class="text-danger">— Stealing the Master Keys</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-4">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="flex flex-col gap-2">
+        <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/1_attack_chain.png')">
+          <img src="../evidence/slide_assets/1_attack_chain.png" style="width:100%;display:block;max-height:160px;object-fit:contain;background:#161B22">
+          <p class="ev-label">▶ Attack chain diagram</p>
+        </div>
+        <div class="flex flex-col gap-2 text-sm">
+          <div class="flex items-start gap-3 card py-2"><span class="text-accent font-black w-5 shrink-0">1</span><div><p class="text-bright font-semibold">Admin creates CDR policy</p><p class="text-muted text-xs">POST → HTTP 201 · UUID confirmed</p></div></div>
+          <div class="flex items-start gap-3 card py-2"><span class="text-accent font-black w-5 shrink-0">2</span><div><p class="text-bright font-semibold">User lists ALL policies</p><p class="text-muted text-xs">GET [User token] → HTTP 200 · admin policy visible</p></div></div>
+          <div class="flex items-start gap-3 card py-2"><span class="text-accent font-black w-5 shrink-0">3</span><div><p class="text-bright font-semibold">User reads full config</p><p class="text-muted text-xs">GET policy/name [User] → HTTP 200</p></div></div>
+          <div class="flex items-start gap-3 card card-red py-2"><span class="text-danger font-black w-5 shrink-0">4</span><div><p class="text-danger font-semibold">User DELETES admin's policy</p><p class="text-muted text-xs">DELETE [User token] → <span class="text-danger font-bold">HTTP 200</span></p></div></div>
+          <div class="flex items-start gap-3 card py-2"><span class="text-warn font-black w-5 shrink-0">5</span><div><p class="text-bright font-semibold">Admin confirms: gone</p><p class="text-muted text-xs">GET [Admin token] → <span class="text-danger font-bold">HTTP 404</span> — Policy not found</p></div></div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-3">
+        <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/cmd_1_delete_policy.png')">
+          <img src="../evidence/slide_assets/cmd_1_delete_policy.png" style="width:100%;display:block;max-height:200px;object-fit:contain;background:#010409">
+          <p class="ev-label">▶ Command: DELETE policy (live)</p>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div><span class="text-muted text-xs ml-2">Standard user deletes admin's CDR policy</span></div>
+          <div class="terminal-body">
+            <span style="color:#F78166">curl</span> <span style="color:#90CAF9">-X DELETE</span> \<br>
+            &nbsp;&nbsp;<span style="color:#A5D6FF">"https://staging.cdr.glasswall.dev/api/v1/policies/bbadmin171policytest"</span> \<br>
+            &nbsp;&nbsp;<span style="color:#F78166">-H</span> <span style="color:#A5D6FF">"Authorization: Bearer &lt;USER_TOKEN&gt;"</span><br><br>
+            <span style="color:#238636">HTTP/2 200</span>&nbsp;&nbsp;<span style="color:#8B949E">{}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 5 — THE KILL SHOT ══════════════════════════════ -->
+<div class="slide" id="slide-5">
+  <div class="slide-header">
+    <p>Slide 5 / 10</p>
+    <h2>The Kill Shot <span class="text-danger">— Disabling the Security System</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-4">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="flex flex-col gap-3">
+        <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/3_cdr_bypass.png')">
+          <img src="../evidence/slide_assets/3_cdr_bypass.png" style="width:100%;display:block;max-height:180px;object-fit:contain;background:#161B22">
+          <p class="ev-label">▶ Before vs After — CDR bypass</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="card card-green py-3">
+            <p class="text-accent text-xs font-bold uppercase mb-2">BEFORE</p>
+            <p class="text-muted text-xs font-mono mb-2">ProcessingRulesDefault: <span class="text-accent">"process"</span></p>
+            <div class="flex flex-col gap-1 text-xs">
+              <div class="flex gap-1"><span class="text-accent">✓</span> All files scanned</div>
+              <div class="flex gap-1"><span class="text-accent">✓</span> Malware stripped</div>
+              <div class="flex gap-1"><span class="text-accent">✓</span> Ransomware blocked</div>
+              <div class="flex gap-1"><span class="text-accent">✓</span> CDR active org-wide</div>
+            </div>
+          </div>
+          <div class="card card-red py-3">
+            <p class="text-danger text-xs font-bold uppercase mb-2">AFTER ATTACK</p>
+            <p class="text-muted text-xs font-mono mb-2">ProcessingRulesDefault: <span class="text-danger">"bypass"</span></p>
+            <div class="flex flex-col gap-1 text-xs">
+              <div class="flex gap-1"><span class="text-danger">✗</span> Files pass unscanned</div>
+              <div class="flex gap-1"><span class="text-danger">✗</span> Malware delivered</div>
+              <div class="flex gap-1"><span class="text-danger">✗</span> Ransomware allowed</div>
+              <div class="flex gap-1"><span class="text-danger">✗</span> CDR disabled org-wide</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-3">
+        <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/cmd_2_bypass_profile.png')">
+          <img src="../evidence/slide_assets/cmd_2_bypass_profile.png" style="width:100%;display:block;max-height:200px;object-fit:contain;background:#010409">
+          <p class="ev-label">▶ Command: PUT bypass (live)</p>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div><span class="text-muted text-xs ml-2">The exact request that disabled CDR</span></div>
+          <div class="terminal-body">
+            <span style="color:#F78166">curl</span> <span style="color:#90CAF9">-X PUT</span> \<br>
+            &nbsp;&nbsp;<span style="color:#A5D6FF">"https://staging.cdr.glasswall.dev/api/v1/profiles/bbadmin171profiletest"</span> \<br>
+            &nbsp;&nbsp;<span style="color:#F78166">-H</span> <span style="color:#A5D6FF">"Authorization: Bearer &lt;USER_TOKEN&gt;"</span> \<br>
+            &nbsp;&nbsp;<span style="color:#F78166">-d</span> <span style="color:#A5D6FF">'{"ProfileSettings":{"ProcessingRulesDefault":"bypass"}}'</span><br><br>
+            <span style="color:#238636">HTTP/2 200</span>&nbsp;&nbsp;<span style="color:#DA3633">{"ProcessingRulesDefault":"bypass"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 6 — TECHNICAL EVIDENCE ════════════════════════ -->
+<div class="slide" id="slide-6">
+  <div class="slide-header">
+    <p>Slide 6 / 10</p>
+    <h2>Technical Evidence <span class="text-accent">— The Proof</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-3">
+    <div class="grid grid-cols-2 gap-4">
+      <div class="flex flex-col gap-3">
+        <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/2_http_evidence.png')">
+          <img src="../evidence/slide_assets/2_http_evidence.png" style="width:100%;display:block;max-height:180px;object-fit:contain;background:#010409">
+          <p class="ev-label">▶ HTTP evidence log</p>
+        </div>
+        <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/cmd_3_control_test.png')">
+          <img src="../evidence/slide_assets/cmd_3_control_test.png" style="width:100%;display:block;max-height:130px;object-fit:contain;background:#010409">
+          <p class="ev-label">▶ Control test: 200 vs 403</p>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="terminal" style="flex:1">
+          <div class="terminal-bar"><div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div><span class="text-muted text-xs ml-2">HTTP Evidence — Two Account Test</span></div>
+          <div class="terminal-body" style="font-size:.78rem">
+            <span style="color:#8B949E"># POLICY IDOR ─────────────────────────────</span><br>
+            <span style="color:#F78166">DELETE</span> /api/v1/policies/bbadmin171policytest <span style="color:#8B949E">[USER]</span><br>
+            &nbsp;&nbsp;→ <span style="color:#238636">HTTP 200 OK</span> &nbsp;<span style="color:#8B949E">← admin policy deleted</span><br>
+            <span style="color:#90CAF9">GET</span>&nbsp;&nbsp;&nbsp; /api/v1/policies/bbadmin171policytest <span style="color:#8B949E">[ADMIN]</span><br>
+            &nbsp;&nbsp;→ <span style="color:#DA3633">HTTP 404</span> ["Policy not found"] &nbsp;<span style="color:#8B949E">← confirmed</span><br><br>
+            <span style="color:#8B949E"># PROFILE IDOR ────────────────────────────</span><br>
+            <span style="color:#F78166">PUT</span>&nbsp;&nbsp;&nbsp; /api/v1/profiles/bbadmin171profiletest <span style="color:#8B949E">[USER, bypass]</span><br>
+            &nbsp;&nbsp;→ <span style="color:#238636">HTTP 200 OK</span> &nbsp;<span style="color:#8B949E">← CDR disabled org-wide</span><br>
+            <span style="color:#90CAF9">GET</span>&nbsp;&nbsp;&nbsp; /api/v1/profiles/bbadmin171profiletest <span style="color:#8B949E">[ADMIN]</span><br>
+            &nbsp;&nbsp;→ <span style="color:#DA3633">{"ProcessingRulesDefault":"bypass"}</span> &nbsp;<span style="color:#8B949E">← was 'process'</span><br><br>
+            <span style="color:#8B949E"># CONTROL TEST ────────────────────────────</span><br>
+            <span style="color:#F78166">DELETE</span> /api/v1/policies/default <span style="color:#8B949E">[USER]</span><br>
+            &nbsp;&nbsp;→ <span style="color:#238636">HTTP 403 Forbidden</span> &nbsp;<span style="color:#8B949E">← only default protected</span>
+          </div>
+        </div>
+        <p class="text-muted text-xs text-center">Reconfirmed 14 May 2026 — still unpatched</p>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="ev-thumb" onclick="openLb('../evidence/reconfirmation_2026-05-14/sc1_enumeration.png')">
+            <img src="../evidence/reconfirmation_2026-05-14/sc1_enumeration.png" style="width:100%;display:block;height:55px;object-fit:cover">
+            <p class="ev-label">sc1 enumeration</p>
+          </div>
+          <div class="ev-thumb" onclick="openLb('../evidence/reconfirmation_2026-05-14/sc3_bypass_active.png')">
+            <img src="../evidence/reconfirmation_2026-05-14/sc3_bypass_active.png" style="width:100%;display:block;height:55px;object-fit:cover">
+            <p class="ev-label">sc3 bypass active</p>
+          </div>
+          <div class="ev-thumb" onclick="openLb('../evidence/reconfirmation_2026-05-14/sc7_admin_vs_user.png')">
+            <img src="../evidence/reconfirmation_2026-05-14/sc7_admin_vs_user.png" style="width:100%;display:block;height:55px;object-fit:cover">
+            <p class="ev-label">sc7 admin vs user</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 7 — IMPACT ══════════════════════════════════════ -->
+<div class="slide" id="slide-7">
+  <div class="slide-header">
+    <p>Slide 7 / 10</p>
+    <h2>Impact <span class="text-danger">— Every File Becomes a Threat</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-4">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="flex flex-col gap-3">
+        <div class="grid grid-cols-3 gap-3">
+          <div class="card card-blue py-3 text-center">
+            <p class="text-info font-black text-2xl mb-1">C</p>
+            <p class="text-info font-bold text-xs uppercase mb-2">Confidentiality</p>
+            <p class="text-muted text-xs">Info Disclosure</p>
+            <div class="h-px bg-border my-2"></div>
+            <div class="text-xs text-muted space-y-1">
+              <div>→ All CDR configs readable</div>
+              <div>→ Risk posture exposed</div>
+              <div>→ Security policies visible</div>
+            </div>
+          </div>
+          <div class="card card-red py-3 text-center">
+            <p class="text-danger font-black text-2xl mb-1">I</p>
+            <p class="text-danger font-bold text-xs uppercase mb-2">Integrity</p>
+            <p class="text-muted text-xs">CDR Bypass</p>
+            <div class="h-px bg-border my-2"></div>
+            <div class="text-xs text-muted space-y-1">
+              <div>→ One PUT disables CDR</div>
+              <div>→ Malware passes through</div>
+              <div>→ Live control modified</div>
+            </div>
+          </div>
+          <div class="card card-yellow py-3 text-center">
+            <p class="text-warn font-black text-2xl mb-1">A</p>
+            <p class="text-warn font-bold text-xs uppercase mb-2">Availability</p>
+            <p class="text-muted text-xs">CDR DoS</p>
+            <div class="h-px bg-border my-2"></div>
+            <div class="text-xs text-muted space-y-1">
+              <div>→ Bulk-delete all policies</div>
+              <div>→ CDR API fails org-wide</div>
+              <div>→ Platform disruption</div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="card py-2 text-center"><p class="text-muted text-xs">Attack Vector</p><p class="text-accent font-bold">Fully Remote</p></div>
+          <div class="card py-2 text-center"><p class="text-muted text-xs">Privileges</p><p class="text-warn font-bold">Low — Std User</p></div>
+          <div class="card py-2 text-center"><p class="text-muted text-xs">User Interaction</p><p class="text-accent font-bold">None Required</p></div>
+          <div class="card py-2 text-center card-red"><p class="text-muted text-xs">Scope</p><p class="text-danger font-bold">Changed — All Clients</p></div>
+        </div>
+        <div class="card card-red py-3">
+          <p class="text-danger text-xs font-bold uppercase tracking-widest mb-1">Real-World Impact</p>
+          <p class="text-muted text-sm">Ransomware &amp; weaponised PDFs reach government &amp; defence users — completely unscanned.</p>
+        </div>
+      </div>
+      <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/5_impact.png')">
+        <img src="../evidence/slide_assets/5_impact.png" style="width:100%;display:block;max-height:350px;object-fit:contain;background:#161B22">
+        <p class="ev-label">▶ Full impact diagram</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 8 — SEVERITY & SCORING ════════════════════════ -->
+<div class="slide" id="slide-8">
+  <div class="slide-header">
+    <p>Slide 8 / 10</p>
+    <h2>Severity &amp; Scoring <span class="text-danger">— CVSS 9.9 Critical</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-4">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="flex flex-col gap-3">
+        <div class="card card-red py-4 text-center" style="background:rgba(218,54,51,.06)">
+          <p class="text-muted text-xs mb-1">CVSS 3.1</p>
+          <p class="text-6xl font-black text-danger leading-none">9.9</p>
+          <p class="text-danger font-bold text-lg">CRITICAL</p>
+          <p class="text-muted text-xs mt-1 font-mono">AV:N/AC:L/PR:L/UI:N/S:C/C:L/I:H/A:H</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="card py-2"><p class="text-muted text-xs">Attack Vector</p><p class="text-bright font-semibold">Network — Fully remote</p></div>
+          <div class="card py-2"><p class="text-muted text-xs">Complexity</p><p class="text-bright font-semibold">Low — No conditions</p></div>
+          <div class="card py-2"><p class="text-muted text-xs">Privileges</p><p class="text-warn font-semibold">Low → 0.50*</p><p class="text-muted" style="font-size:.65rem">*Scope:Changed multiplier</p></div>
+          <div class="card py-2"><p class="text-muted text-xs">User Interaction</p><p class="text-bright font-semibold">None — Zero victim action</p></div>
+          <div class="card card-red py-2 col-span-2"><p class="text-muted text-xs">Scope</p><p class="text-danger font-bold">Changed ⚠ — One user affects ALL platform clients</p></div>
+        </div>
+        <div class="card card-green py-3 text-center">
+          <p class="text-muted text-xs uppercase tracking-widest mb-2">Assignment Part B Scoring</p>
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <div><p class="text-muted text-xs">Severity S4 Critical</p><p class="text-accent font-bold">6.0 pts</p></div>
+            <div><p class="text-muted text-xs">Evidence</p><p class="text-accent font-bold">2 / 2</p></div>
+            <div><p class="text-muted text-xs">Novelty (Zero-Day)</p><p class="text-accent font-bold">2 / 2</p></div>
+          </div>
+          <div class="h-px bg-border my-2"></div>
+          <p class="text-accent font-black text-2xl">10 / 10 MAX</p>
+        </div>
+      </div>
+      <div class="ev-thumb" onclick="openLb('../evidence/slide_assets/4_cvss_scoring.png')">
+        <img src="../evidence/slide_assets/4_cvss_scoring.png" style="width:100%;display:block;max-height:380px;object-fit:contain;background:#161B22">
+        <p class="ev-label">▶ Full CVSS breakdown + 10/10 scoring</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 9 — NOVELTY & MITIGATION ══════════════════════ -->
+<div class="slide" id="slide-9">
+  <div class="slide-header">
+    <p>Slide 9 / 10</p>
+    <h2>Novelty &amp; Mitigation <span class="text-warn">— Zero-Day Candidate</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-4">
+    <div class="grid grid-cols-2 gap-5">
+      <div class="flex flex-col gap-3">
+        <div class="card" style="border-color:#E3B341;background:rgba(227,179,65,.06)">
+          <p class="text-warn font-black text-xl mb-1">Zero-Day Candidate</p>
+          <p class="text-muted text-sm">No prior public disclosure found before 1 May 2026</p>
+          <div class="mt-2 flex items-center gap-2 text-xs font-semibold" style="color:#DA3633"><span>⚠</span><span>Still unpatched — reconfirmed 14 May 2026</span></div>
+        </div>
+        <div class="card">
+          <p class="text-muted text-xs font-bold uppercase tracking-widest mb-2">Evidence of Novelty</p>
+          <div class="flex flex-col gap-1.5 text-sm">
+            <div class="flex gap-2"><span class="text-danger">✗</span>No CVE in NVD database</div>
+            <div class="flex gap-2"><span class="text-danger">✗</span>No HackerOne public disclosure</div>
+            <div class="flex gap-2"><span class="text-danger">✗</span>No Intigriti public reports</div>
+            <div class="flex gap-2"><span class="text-danger">✗</span>No security blog writeup</div>
+            <div class="h-px bg-border my-1"></div>
+            <div class="flex gap-2"><span class="text-accent">✓</span>Vendor-provided staging accounts used</div>
+            <div class="flex gap-2"><span class="text-accent">✓</span>Confirmed: <span class="text-warn ml-1">1 May 2026</span></div>
+            <div class="flex gap-2"><span class="text-danger font-bold">⚠</span>Reconfirmed unpatched: <span class="text-danger font-semibold ml-1">14 May 2026 — 13 days</span></div>
+            <div class="flex gap-2"><span class="text-accent">✓</span>Severity above Medium → reported to coordinator</div>
+          </div>
+        </div>
+        <div class="card py-2 text-center card-green"><p class="text-accent font-bold">Novelty Score: 2 / 2 — Top Band</p></div>
+      </div>
+      <div class="flex flex-col gap-2">
+        <p class="text-muted text-xs font-bold uppercase tracking-widest mb-1">The Fix — One Check. Applied Consistently.</p>
+        <div class="flex items-start gap-3 card py-3"><span class="text-accent font-black text-base w-5 shrink-0">1</span><div><p class="text-bright text-sm font-semibold">Enforce ownership</p><p class="text-muted text-xs">Bind each policy/profile to creator OID from JWT. Reject writes where OID doesn't match.</p></div></div>
+        <div class="flex items-start gap-3 card py-3"><span class="text-accent font-black text-base w-5 shrink-0">2</span><div><p class="text-bright text-sm font-semibold">Role-gate destructive operations</p><p class="text-muted text-xs">PUT and DELETE require explicit admin role claim.</p></div></div>
+        <div class="flex items-start gap-3 card py-3"><span class="text-accent font-black text-base w-5 shrink-0">3</span><div><p class="text-bright text-sm font-semibold">Authorization middleware</p><p class="text-muted text-xs">Single layer before all policy and profile handlers.</p></div></div>
+        <div class="flex items-start gap-3 card py-3"><span class="text-accent font-black text-base w-5 shrink-0">4</span><div><p class="text-bright text-sm font-semibold">Restrict bypass field</p><p class="text-muted text-xs"><code class="text-orange text-xs">ProcessingRulesDefault: bypass</code> — admin tokens only.</p></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 10 — CONCLUSION ════════════════════════════════ -->
+<div class="slide" id="slide-10">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(218,54,51,.06),transparent)"></div>
+  <div class="slide-header">
+    <p>Slide 10 / 10</p>
+    <h2>Conclusion <span class="text-danger">— One Key. Every Room.</span></h2>
+    <div class="divider"></div>
+  </div>
+  <div class="slide-body pt-3">
+    <div class="grid grid-cols-2 gap-5 mb-3">
+      <div class="flex flex-col gap-2">
+        <div class="card card-red py-3"><p class="text-danger font-black text-xs mb-1 uppercase tracking-wide">Stage 1 — Delete Policies</p><p class="text-muted text-sm">User token deletes admin policies → <span class="text-danger font-semibold">CDR fails org-wide</span></p></div>
+        <div class="card card-red py-3"><p class="text-danger font-black text-xs mb-1 uppercase tracking-wide">Stage 2 — Bypass CDR</p><p class="text-muted text-sm">One PUT → <code class="text-danger text-xs">"bypass"</code> → <span class="text-danger font-semibold">all malicious files pass unscanned</span></p></div>
+        <div class="card py-3"><p class="text-muted text-xs font-bold uppercase tracking-widest mb-1">Root Cause</p><p class="text-bright text-sm">URL resource name trusted with <span class="text-danger">no ownership check</span>. One missing middleware.</p></div>
+      </div>
+      <div class="flex flex-col gap-2">
+        <div class="card py-3 text-center card-red" style="background:rgba(218,54,51,.06)">
+          <p class="text-muted text-xs mb-1">CVSS 3.1 Score</p>
+          <p class="text-5xl font-black text-danger leading-none">9.9</p>
+          <p class="text-danger font-bold">CRITICAL</p>
+          <p class="text-muted text-xs mt-1">Intigriti Critical · S4 · Zero-Day Candidate</p>
+          <div class="h-px bg-border my-2"></div>
+          <p class="text-accent font-black text-xl">10 / 10 MAX</p>
+          <p class="text-muted text-xs">Part B Impact Row</p>
+        </div>
+        <div class="card card-green py-3 text-center">
+          <p class="text-muted text-xs mb-1 uppercase tracking-widest">The Lesson</p>
+          <p class="text-bright text-sm font-semibold">Authentication proves <span class="text-info">who you are.</span></p>
+          <p class="text-bright text-sm font-semibold mt-1">Authorization protects <span class="text-accent">what you can touch.</span></p>
+          <div class="h-px bg-border my-2"></div>
+          <p class="text-muted text-sm italic">When object-level authorization is missing —<br>one low-privilege user holds the master key<br>to every room in the building.</p>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-6 gap-2 text-center text-xs">
+      <div class="card py-2"><p class="text-muted text-xs">Target</p><p class="text-accent font-mono" style="font-size:.72rem">staging.cdr.glasswall.dev</p></div>
+      <div class="card py-2"><p class="text-muted text-xs">Vuln Class</p><p class="text-info font-bold">BOLA / IDOR</p></div>
+      <div class="card py-2"><p class="text-muted text-xs">CVSS</p><p class="text-danger font-black">9.9 Critical</p></div>
+      <div class="card py-2"><p class="text-muted text-xs">Type</p><p class="text-warn font-bold">Zero-Day</p></div>
+      <div class="card py-2"><p class="text-muted text-xs">Score</p><p class="text-accent font-black">10 / 10 MAX</p></div>
+      <div class="card py-2" style="border-color:#DA3633"><p class="text-muted text-xs">Status</p><p class="text-danger font-bold">⚠ Unpatched</p><p style="font-size:.65rem;color:#8B949E">14 May 2026</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Presenter placeholder (top-right corner) ─────────────── -->
+<div id="presenter-box" style="position:fixed;top:0;right:0;z-index:150;width:160px;height:90px;border-left:2px solid #30363D;border-bottom:2px solid #30363D;border-bottom-left-radius:10px;"></div>
+
+<!-- Navigation -->
+<div class="fixed bottom-0 left-0 w-full z-50" style="background:#161B22;border-top:1px solid #30363D">
+  <div class="flex items-center justify-between px-10 py-3">
+    <button class="nav-btn" id="btn-prev" onclick="changeSlide(-1)" disabled>← Prev</button>
+    <div class="flex items-center gap-4">
+      <div class="flex gap-1.5" id="dot-indicators"></div>
+      <span class="text-muted text-sm" id="slide-counter">1 / 10</span>
+    </div>
+    <button class="nav-btn" id="btn-next" onclick="changeSlide(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+const TOTAL = 10;
+let current = 1;
+const dotContainer = document.getElementById('dot-indicators');
+for (let i = 1; i <= TOTAL; i++) {
+  const d = document.createElement('button');
+  d.id = `dot-${i}`;
+  d.style.cssText = `width:8px;height:8px;border-radius:50%;border:none;cursor:pointer;transition:all .2s;background:${i===1?'#238636':'#30363D'}`;
+  d.onclick = () => goTo(i);
+  dotContainer.appendChild(d);
+}
+function goTo(n) {
+  document.getElementById(`slide-${current}`).classList.remove('active');
+  document.getElementById(`dot-${current}`).style.background = '#30363D';
+  current = n;
+  document.getElementById(`slide-${current}`).classList.add('active');
+  document.getElementById(`dot-${current}`).style.background = '#238636';
+  document.getElementById('slide-counter').textContent = `${current} / ${TOTAL}`;
+  document.getElementById('btn-prev').disabled = current === 1;
+  document.getElementById('btn-next').disabled = current === TOTAL;
+  document.getElementById('progress-bar').style.width = `${(current/TOTAL)*100}%`;
+  const body = document.querySelector(`#slide-${current} .slide-body`);
+  if (body) body.scrollTop = 0;
+}
+function changeSlide(dir) { const n = current + dir; if (n >= 1 && n <= TOTAL) goTo(n); }
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') changeSlide(1);
+  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   changeSlide(-1);
+  if (e.key==='Escape') closeLb();
+});
+function openLb(src) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLb() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-img').src = '';
+}
+</script>
+</body>
+</html>
